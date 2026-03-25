@@ -86,7 +86,7 @@ export const translations = {
     // Home Page
     Home: "Home",
     History: "History",
-    "Welcome to Sirchmunk": "Welcome to Sirchmunk",
+    "Welcome to Sirchmunk": "Welcome to FlyKnow",
     "Search to Learn, Evolve to Find.": "Search to Learn, Evolve to Find.",
     "Ask anything...": "Ask anything...",
     "Input message or search the web via g: xx or G: xx ...": "Input message or search the web via g: xx or G: xx ...",
@@ -126,6 +126,12 @@ export const translations = {
     "FAST Desc": "Greedy search, fastest",
     "DEEP Desc": "Comprehensive analysis",
     "FILENAME_ONLY Desc": "Filename matching only",
+    "Upload failed": "Upload failed",
+    "Uploading": "Uploading",
+    "Processing": "Processing",
+    "Unknown error": "Unknown error",
+    "Network error": "Network error",
+    "Attach file": "Attach file",
 
     // History Page
     "Chat History": "Chat History",
@@ -218,7 +224,7 @@ export const translations = {
     // Home Page
     Home: "首页",
     History: "历史记录",
-    "Welcome to Sirchmunk": "欢迎使用 Sirchmunk",
+    "Welcome to Sirchmunk": "欢迎使用 FlyKnow",
     "Search to Learn, Evolve to Find.": "搜索以学习，进化以发现。",
     "Ask anything...": "问我任何问题...",
     "Type your message...": "输入消息，或使用前缀 g: xxx 或 G: xxx 跳转到搜索引擎",
@@ -258,6 +264,12 @@ export const translations = {
     "FAST Desc": "贪心搜索，最快",
     "DEEP Desc": "全面分析",
     "FILENAME_ONLY Desc": "仅文件名匹配",
+    "Upload failed": "上传失败",
+    "Uploading": "上传中",
+    "Processing": "解析中",
+    "Unknown error": "未知错误",
+    "Network error": "网络错误",
+    "Attach file": "附加文件",
 
     // History Page
     "Chat History": "聊天历史",

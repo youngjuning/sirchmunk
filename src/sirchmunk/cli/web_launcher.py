@@ -40,7 +40,7 @@ _NEXT_BUILD_STATIC_ENV = "NEXT_BUILD_STATIC"
 #  Utility helpers
 # ---------------------------------------------------------------------------
 
-def _print(msg: str):
+def _print(msg: str = ""):
     """Print with flush for real-time output."""
     print(msg, flush=True)
 
@@ -394,7 +394,7 @@ def start_frontend_dev(
 
     env = os.environ.copy()
     env["PORT"] = str(frontend_port)
-    env[_NEXT_API_BASE_ENV] = f"http://localhost:{backend_port}"
+    env[_NEXT_API_BASE_ENV] = f"__RUNTIME_API_BASE__:{backend_port}"
     env["PYTHONIOENCODING"] = "utf-8"
 
     popen_kwargs = {
@@ -416,7 +416,7 @@ def start_frontend_dev(
 
     try:
         process = subprocess.Popen(
-            [npm_cmd, "run", "dev", "--", "-p", str(frontend_port)],
+            [npm_cmd, "run", "dev", "--", "-H", "0.0.0.0", "-p", str(frontend_port)],
             **popen_kwargs,
         )
     except Exception as e:

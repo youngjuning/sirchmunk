@@ -25,6 +25,7 @@ import {
   Plus,
   Square,
   Zap,
+  Paperclip,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -89,6 +90,8 @@ export default function HomePage() {
   const [showPathDropdown, setShowPathDropdown] = useState(false);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
   const [enableSuggestions, setEnableSuggestions] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -179,10 +182,67 @@ export default function HomePage() {
     return () => cancelAnimationFrame(id);
   }, [chatState.messages, chatState.isLoading]);
 
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const uploadSingleFile = (file: File): Promise<void> => {
+    return new Promise((resolve) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", apiUrl("/api/v1/upload"));
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        try {
+          const result = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300 && result.success && result.data?.path) {
+            const filePath = result.data.path;
+            if (!selectedPaths.includes(filePath)) {
+              setSelectedPaths((prev) => [...prev, filePath]);
+            }
+            setSelectedPath(filePath);
+            setChatState((prev) => ({
+              ...prev,
+              enableRag: true,
+              selectedKb: filePath,
+            }));
+          } else {
+            const msg = result.error || result.detail || `HTTP ${xhr.status}`;
+            setUploadError(`${t("Upload failed")}: ${msg}`);
+          }
+        } catch {
+          setUploadError(`${t("Upload failed")}: ${t("Unknown error")}`);
+        }
+        resolve();
+      };
+      xhr.onerror = () => {
+        setUploadError(`${t("Upload failed")}: ${t("Network error")}`);
+        resolve();
+      };
+      xhr.send(formData);
+    });
+  };
+
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadProgress(0);
+    for (const file of Array.from(files)) {
+      await uploadSingleFile(file);
+    }
+    setIsUploading(false);
+    setUploadProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSend = async () => {
     if (!inputMessage.trim() || chatState.isLoading) return;
 
-    // Check for Google search shortcut
+    // Check for Google search shortcut (only when no files attached)
     const trimmedMessage = inputMessage.trim();
     if (trimmedMessage.toLowerCase().startsWith('g:') || trimmedMessage.toLowerCase().startsWith('G:')) {
       const searchQuery = trimmedMessage.slice(2).trim();
@@ -364,6 +424,15 @@ export default function HomePage() {
     <div className="h-screen flex animate-fade-in">
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
+      {/* Hidden file input for uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.docx,.pptx,.xlsx,.txt,.md,.csv,.json,.html,.htm"
+        className="hidden"
+        onChange={(e) => handleFileUpload(e.target.files)}
+      />
       {/* Web-based File Browser (fallback when Tkinter is unavailable, e.g. Docker) */}
       {fileBrowserMode && (
         <FileBrowser
@@ -390,7 +459,7 @@ export default function HomePage() {
 
       {/* File Selector Modal (available in both empty and chat views) */}
       {showFileSelector && !fileBrowserMode && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999]"
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         >
@@ -587,7 +656,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">
                 {/* File Toggle */}
-                <button
+                {/* <button
                   onClick={() => {
                     if (!chatState.enableRag) {
                       setShowFileSelector(true);
@@ -607,10 +676,10 @@ export default function HomePage() {
                 >
                   <Database className="w-3.5 h-3.5" />
                   {t("FileSystem")}
-                </button>
+                </button> */}
 
                 {/* Search Mode Selector */}
-                <div className="relative" ref={modeDropdownRef}>
+                {/* <div className="relative" ref={modeDropdownRef}>
                   <button
                     onClick={() => setShowModeDropdown(!showModeDropdown)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -640,7 +709,7 @@ export default function HomePage() {
                       ))}
                     </div>
                   )}
-                </div>
+                </div> */}
 
                 {/* Web Search Toggle (hidden for now) */}
                 {false && (
@@ -684,11 +753,26 @@ export default function HomePage() {
 
 
             {/* Input Field */}
+            {uploadError && (
+              <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 rounded-lg text-xs">
+                <span className="flex-1">{uploadError}</span>
+                <button onClick={() => setUploadError(null)} className="text-red-400 hover:text-red-700 dark:hover:text-red-200">×</button>
+              </div>
+            )}
             <div className="relative">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 z-10"
+                title={t("Attach file")}
+              >
+                {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Paperclip className="w-5 h-5" />}
+              </button>
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full px-5 py-4 pr-14 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50"
+                className="w-full pl-12 py-4 pr-14 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50"
                 placeholder={t("Ask anything...")}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
@@ -777,7 +861,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
             <div className="flex items-center gap-3">
               {/* Mode Toggles */}
-              <button
+              {/* <button
                 onClick={() => {
                   // Toggle RAG mode
                   if (!chatState.enableRag) {
@@ -808,10 +892,10 @@ export default function HomePage() {
               >
                 <Database className="w-3 h-3" />
                 File
-              </button>
+              </button> */}
 
               {/* Search Mode Selector (compact) */}
-              <div className="relative">
+              {/* <div className="relative">
                 <button
                   onClick={() => setShowModeDropdown(!showModeDropdown)}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -844,10 +928,10 @@ export default function HomePage() {
                     ))}
                   </div>
                 )}
-              </div>
+              </div> */}
 
               {/* Suggestions Toggle */}
-              <button
+              {/* <button
                 onClick={() => setEnableSuggestions((prev) => !prev)}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
                   enableSuggestions
@@ -858,7 +942,7 @@ export default function HomePage() {
               >
                 <Lightbulb className="w-3 h-3" />
                 {t("Suggest")}
-              </button>
+              </button> */}
 
               {/* Web Search Button - Temporarily hidden but functionality preserved */}
               {false && (
@@ -1004,7 +1088,7 @@ export default function HomePage() {
                               <Search className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Search Process</span>
                             </div>
-                            <div 
+                            <div
                               className="space-y-1 max-h-48 overflow-y-auto"
                               ref={(el) => {
                                 // Auto-scroll to bottom when new logs arrive
@@ -1160,11 +1244,27 @@ export default function HomePage() {
 
           {/* Input Area - Fixed at bottom */}
           <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-4">
-            <div className="max-w-4xl mx-auto relative">
+            <div className="max-w-4xl mx-auto">
+              {uploadError && (
+                <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 rounded-lg text-xs">
+                  <span className="flex-1">{uploadError}</span>
+                  <button onClick={() => setUploadError(null)} className="text-red-400 hover:text-red-700 dark:hover:text-red-200">×</button>
+                </div>
+              )}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 z-10"
+                title={t("Attach file")}
+              >
+                {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Paperclip className="w-5 h-5" />}
+              </button>
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full px-5 py-3.5 pr-14 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200"
+                className="w-full pl-12 py-3.5 pr-14 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200"
                 placeholder={t("Input message or search the web via g: xx or G: xx ...")}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
@@ -1237,6 +1337,7 @@ export default function HomePage() {
                   </div>
                 </div>
               )}
+            </div>
             </div>
           </div>
         </>

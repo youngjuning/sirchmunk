@@ -39,8 +39,8 @@ export default function Sidebar() {
       name: "",
       items: [
         { name: t("Home"), href: "/", icon: Home },
-        { name: t("History"), href: "/history", icon: History },
-        { name: t("Knowledge"), href: "/knowledge", icon: BookOpen },
+        // { name: t("History"), href: "/history", icon: History },
+        // { name: t("Knowledge"), href: "/knowledge", icon: BookOpen },
       ],
     },
     {
@@ -171,7 +171,7 @@ export default function Sidebar() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+              {/* <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
                 <Image
                   src="/logo-v2.png"
                   alt="Sirchmunk Logo"
@@ -180,9 +180,9 @@ export default function Sidebar() {
                   className="object-contain"
                   priority
                 />
-              </div>
+              </div> */}
               <h1 className="font-bold text-slate-900 dark:text-slate-100 tracking-tight text-base truncate">
-                Sirchmunk
+                FlyKnow
               </h1>
             </div>
             <div className="flex items-center gap-0.5">
@@ -215,9 +215,9 @@ export default function Sidebar() {
             </div>
           </div>
 
-          <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-slate-700/50 px-2 py-1.5 rounded-md border border-slate-100 dark:border-slate-600 truncate">
+          {/* <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-slate-700/50 px-2 py-1.5 rounded-md border border-slate-100 dark:border-slate-600 truncate">
             ✨ ModelScope Team
-          </div>
+          </div> */}
         </div>
       </div>
 

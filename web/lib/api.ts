@@ -12,6 +12,14 @@ export const API_BASE_URL: string = (() => {
   // Env var is embedded at build time by Next.js
   const envBase = process.env.NEXT_PUBLIC_API_BASE;
 
+  // Runtime detection: when dev server sets a sentinel with backend port,
+  // resolve it using the browser's current hostname so remote access works.
+  if (envBase && envBase.startsWith("__RUNTIME_API_BASE__:") && typeof window !== "undefined") {
+    const port = envBase.split(":")[1];
+    const proto = window.location.protocol;
+    return `${proto}//${window.location.hostname}:${port}`;
+  }
+
   // If explicitly set (even to empty string), use it directly.
   // Empty string means same-origin (relative URLs).
   if (envBase !== undefined) {

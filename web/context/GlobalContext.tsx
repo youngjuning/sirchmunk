@@ -615,7 +615,7 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
     selectedKb: "",
     enableRag: false,
     enableWebSearch: false,
-    searchMode: "FAST",
+    searchMode: "DEEP",
     currentStage: null,
   });
   const chatWs = useRef<WebSocket | null>(null);

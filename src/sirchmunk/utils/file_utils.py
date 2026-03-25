@@ -63,6 +63,8 @@ class StorageStructure:
 
     COGNITION_DIR = "cognition"
 
+    UPLOADS_DIR = "uploads"
+
     # `.idx` -> Index file for fast lookup of cluster content
     CLUSTER_INDEX_FILE = "cluster.idx"
 

@@ -8,7 +8,7 @@ import platform
 import re
 import time
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File
 from typing import Dict, Any, List, Optional, Union, Tuple
 from pydantic import BaseModel
 import json
@@ -1334,6 +1334,45 @@ async def get_file_picker_status():
             }
         }
     }
+
+
+@router.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Upload a file, persist it to disk, and extract its text content."""
+    from sirchmunk.utils.constants import SIRCHMUNK_WORK_PATH
+    from sirchmunk.utils.file_utils import StorageStructure, fast_extract
+
+    upload_dir = os.path.join(
+        SIRCHMUNK_WORK_PATH, StorageStructure.CACHE_DIR, StorageStructure.UPLOADS_DIR
+    )
+    os.makedirs(upload_dir, exist_ok=True)
+
+    original_name = file.filename or "unknown"
+    base, suffix = os.path.splitext(original_name)
+    # Use timestamp + uuid to avoid name collisions while keeping the original name readable
+    unique_name = f"{base}_{int(time.time())}_{uuid.uuid4().hex[:8]}{suffix}"
+    saved_path = os.path.join(upload_dir, unique_name)
+
+    try:
+        content = await file.read()
+        with open(saved_path, "wb") as f:
+            f.write(content)
+
+        result = await fast_extract(saved_path)
+        text = result.content or ""
+
+        return {
+            "success": True,
+            "data": {
+                "filename": original_name,
+                "content": text,
+                "size": len(content),
+                "path": saved_path,
+            },
+        }
+    except Exception as e:
+        logger.warning("File upload extraction failed: %s", e)
+        return {"success": False, "error": str(e) or type(e).__name__}
 
 
 @router.get("/file-browser")
